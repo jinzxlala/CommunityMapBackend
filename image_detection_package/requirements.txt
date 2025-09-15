@@ -1,0 +1,4 @@
+Pillow>=10.0,<11
+requests>=2.31,<3
+numpy>=1.24,<2
+dashscope>=1.17,<2
