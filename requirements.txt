@@ -1,10 +1,6 @@
-torch==2.6.0
 Pillow>=10.0,<11
 requests>=2.31,<3
 dashscope>=1.17,<2
-# Qwen + 本地模型（CPU）所需依赖
-# 若需 GPU/CUDA，请按 README 中的说明选择对应的索引安装 torch/torchvision
-
 
 # Django兼容性（如果后端需要）
 django>=3.2.0
