@@ -44,8 +44,14 @@ class UserFavoritesView(APIView):
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
+from django.http import HttpResponse
+
+def hello_view(request):
+    return HttpResponse("hello")
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('hello/', hello_view),
     path('', include('myapp.urls')),
     path('api/', include('myapp.urls')),
     path('locations/', LocationListCreateView.as_view(), name='location-list'),
