@@ -24,12 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-x&#exej74sbd#(be58rx916)5$o0c4gu$r3wu9=jz*98=mw2@l"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['47.109.150.241', 'localhost', '127.0.0.1']
 
 # 配置生产环境域名
-SITE_URL = 'http://47.109.150.241:8000'
+SITE_URL = 'http://localhost:8000' if DEBUG else 'http://47.109.150.241:8000'
 
 # Application definition
 
@@ -41,14 +41,23 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",  # Token认证
     'django_filters',
-    "paddlehub",
+    'corsheaders',
     'myapp',
 ]
+
+# 可选集成：仅当 paddlehub 可用时才启用
+try:
+    import paddlehub  # noqa: F401
+    INSTALLED_APPS.append("paddlehub")
+except Exception:
+    pass
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -139,12 +148,20 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',  # 允许所有请求（开发环境）
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10
 }
 
-CSRF_TRUSTED_ORIGINS = ['http://47.109.150.241:8000']
-CORS_ALLOWED_ORIGINS = [
-    "http://47.109.150.241:8000",
-    "http://localhost:8000",
-]
+CSRF_TRUSTED_ORIGINS = ['http://47.109.150.241:8000', 'http://localhost:8000']
+# 在开发环境下放开所有跨域
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+# 生产可改回白名单
+# CORS_ALLOWED_ORIGINS = [
+#     "http://47.109.150.241:8000",
+#     "http://localhost:8000",
+# ]

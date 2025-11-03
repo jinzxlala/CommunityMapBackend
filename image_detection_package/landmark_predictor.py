@@ -279,9 +279,9 @@ class LandmarkPredictor:
             
             self.model = self.model.to(self.device)
             self.model.eval()
-            print("✅ 模型加载成功!")
+            print("[OK] Model loaded successfully!")
         except Exception as e:
-            print(f"❌ 模型加载失败: {e}")
+            print(f"[ERROR] Model loading failed: {e}")
             # 在 Django 环境中，我们不应该退出程序，而是让 model 保持为 None
             self.model = None
     

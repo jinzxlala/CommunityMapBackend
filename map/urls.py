@@ -54,9 +54,8 @@ urlpatterns = [
     path('hello/', hello_view),
     path('', include('myapp.urls')),
     path('api/', include('myapp.urls')),
-    path('locations/', LocationListCreateView.as_view(), name='location-list'),
     path('api/favorites/', UserFavoritesView.as_view(), name='user-favorites'),
-    path('api/recognize/', LandmarkRecognitionView.as_view(), name='landmark-recognition')
+    path('api/recognize/', LandmarkRecognitionView.as_view(), name='landmark-recognition'),
 ]
 
 if settings.DEBUG:

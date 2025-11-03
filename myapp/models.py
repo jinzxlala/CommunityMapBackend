@@ -25,6 +25,7 @@ class Location(models.Model):
     longitude = models.FloatField()
     description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to='landmark_images/', blank=True, null=True)
+    category = models.CharField(max_length=50, blank=True, null=True, default='其他')
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='locations',default = 1)
     favorites = models.ManyToManyField(User, related_name='favorite_locations', blank=True)
 

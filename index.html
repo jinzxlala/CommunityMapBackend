@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>地图地标管理系统</title>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            touch-action: manipulation;
+        }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        
+        /* 按钮容器样式 */
+        .buttons-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 1;
+            align-items: center;
+        }
+
+        /* 创建地标按钮样式 */
+        #create-landmark-btn {
+            width: 44px;
+            height: 44px;
+            background-color: white;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #4CAF50;
+            font-size: 18px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        #create-landmark-btn:hover, #create-landmark-btn:active {
+            background-color: #E8F5E9;
+            transform: scale(1.05);
+        }
+
+        /* 地标列表按钮样式（右上第二个按钮） */
+        #landmarks-list-btn {
+            width: 44px;
+            height: 44px;
+            background-color: white;
+            border: 2px solid #2196F3;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #2196F3;
+            font-size: 18px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        #landmarks-list-btn:hover, #landmarks-list-btn:active {
+            background-color: #E3F2FD;
+            transform: scale(1.05);
+        }
+
+        /* 上传识别按钮样式 */
+        #upload-recognize-btn {
+            width: 44px;
+            height: 44px;
+            background-color: white;
+            border: 2px solid #9C27B0;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #9C27B0;
+            font-size: 18px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        #upload-recognize-btn:hover, #upload-recognize-btn:active {
+            background-color: #F3E5F5;
+            transform: scale(1.05);
+        }
+
+        /* 收藏按钮样式 */
+        #favorite-button {
+            width: 44px;
+            height: 44px;
+            background-color: white;
+            border: 2px solid #FF0000;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #FF0000;
+            font-size: 18px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        #favorite-button:hover, #favorite-button:active {
+            background-color: #FFEBEE;
+            transform: scale(1.05);
+        }
+
+        /* 登录/登出按钮样式 */
+        #auth-button {
+            width: 44px;
+            height: 44px;
+            background-color: white;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #4CAF50;
+            font-size: 18px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        #auth-button:hover, #auth-button:active {
+            background-color: #E8F5E9;
+            transform: scale(1.05);
+        }
+
+        #auth-button.logged-in {
+            border-color: #FF9800;
+            color: #FF9800;
+        }
+
+        #auth-button.logged-in:hover, #auth-button.logged-in:active {
+            background-color: #FFF3E0;
+        }
+
+        /* 添加收藏夹按钮样式 */
+        #add-folder-button {
+            width: 44px;
+            height: 44px;
+            background-color: white;
+            border: 2px solid #2196F3;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: #2196F3;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        #add-folder-button:hover, #add-folder-button:active {
+            background-color: #E3F2FD;
+            transform: scale(1.05);
+        }
+
+        /* 地标创建表单样式 */
+        #landmark-form {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 300px;
+            max-width: 90vw;
+        }
+
+        #landmark-form h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            transition: background-color 0.3s ease;
+            padding: 8px;
+            margin-left: -8px;
+            margin-right: -8px;
+            border-radius: 4px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .form-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+
+        .btn-secondary {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #da190b;
+        }
+
+        /* 地标列表样式 */
+        #landmarks-list {
+            display: none;
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            width: 300px;
+            max-height: 400px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            z-index: 1;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .landmark-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .landmark-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .landmark-item:last-child {
+            border-bottom: none;
+        }
+
+        .landmark-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .landmark-description {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .landmark-category {
+            font-size: 11px;
+            color: #999;
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .landmark-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .landmark-actions button {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: #1976D2;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #d32f2f;
+        }
+
+        /* 收藏列表弹窗样式 */
+        #favorites-popup {
+            display: none;
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            width: 300px;
+            max-height: 400px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            z-index: 1;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        /* 识别结果弹窗样式 */
+        #recognition-result-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1100;
+            width: 400px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #recognition-result-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        #recognition-result-modal .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #recognition-result-modal .close-btn {
+            cursor: pointer;
+            font-size: 24px;
+            color: #999;
+            line-height: 1;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        #recognition-result-modal .close-btn:hover {
+            color: #333;
+        }
+
+        #recognition-result-modal .image-preview {
+            width: 100%;
+            max-height: 250px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+        }
+
+        #recognition-result-modal .result-content {
+            margin-bottom: 20px;
+        }
+
+        #recognition-result-modal .result-item {
+            margin-bottom: 12px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        #recognition-result-modal .result-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        #recognition-result-modal .result-value {
+            color: #333;
+            font-size: 16px;
+        }
+
+        #recognition-result-modal .result-value.success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        #recognition-result-modal .result-value.error {
+            color: #f44336;
+        }
+
+        #recognition-result-modal .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        #recognition-result-modal .modal-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        #recognition-result-modal .btn-create-landmark {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #recognition-result-modal .btn-create-landmark:hover {
+            background-color: #45a049;
+        }
+
+        #recognition-result-modal .btn-close {
+            background-color: #9E9E9E;
+            color: white;
+        }
+
+        #recognition-result-modal .btn-close:hover {
+            background-color: #757575;
+        }
+
+        /* 上传遮罩层 */
+        #upload-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1099;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #upload-overlay .upload-spinner {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        #upload-overlay .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #9C27B0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        #upload-overlay .upload-text {
+            color: #333;
+            font-size: 16px;
+        }
+
+        /* 登录弹窗样式 */
+        #login-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1100;
+            width: 350px;
+            max-width: 90vw;
+        }
+
+        #login-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #login-modal .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #login-modal .close-btn {
+            cursor: pointer;
+            font-size: 24px;
+            color: #999;
+            line-height: 1;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        #login-modal .close-btn:hover {
+            color: #333;
+        }
+
+        #login-modal .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #login-modal .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #login-modal .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        #login-modal .form-group input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        #login-modal .form-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        #login-modal .login-btn {
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #login-modal .login-btn:hover {
+            background-color: #45a049;
+        }
+
+        #login-modal .login-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #login-modal .error-message {
+            color: #f44336;
+            font-size: 14px;
+            margin-top: -10px;
+            display: none;
+        }
+
+        /* 登录遮罩层 */
+        #login-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1099;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .buttons-container {
+                top: 15px;
+                right: 15px;
+                gap: 12px;
+            }
+
+            #create-landmark-btn, #favorite-button, #add-folder-button, #upload-recognize-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+
+            #landmark-form {
+                width: 90%;
+                max-width: 350px;
+                padding: 25px;
+            }
+
+            #landmarks-list {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                height: 100%;
+                max-height: none;
+                border-radius: 0;
+                padding: 20px;
+                box-sizing: border-box;
+            }
+
+            .landmark-item {
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 8px;
+                background-color: #f8f9fa;
+            }
+        }
+
+        /* 提示框容器 */
+        #notification-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        /* 选点提示条 */
+        /* 旧的黑底提示条已废弃，统一使用白色通知框 */
+        #select-hint { display: none; }
+
+        /* 位置确认弹窗 */
+        #confirm-location-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 1100;
+            width: 320px;
+            max-width: 90vw;
+        }
+        #confirm-location-modal .title {
+            margin: 0 0 8px 0;
+            font-weight: bold;
+            color: #333;
+        }
+        #confirm-location-modal .desc {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        #confirm-location-modal .coords {
+            font-size: 12px;
+            color: #555;
+            background: #f6f8fa;
+            padding: 6px 8px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+        #confirm-location-modal .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        #confirm-location-modal .actions button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        #confirm-location-modal .btn-confirm { background: #4CAF50; color: #fff; }
+        #confirm-location-modal .btn-reselect { background: #2196F3; color: #fff; }
+        #confirm-location-modal .btn-cancel { background: #f44336; color: #fff; }
+
+        /* 提示框样式 */
+        .notification {
+            background-color: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+            backdrop-filter: blur(10px);
+        }
+
+        .notification.fade-out {
+            opacity: 0;
+        }
+
+        /* 图标配色 */
+        .icon-green { color: #4CAF50; font-weight: bold; }
+        .icon-blue { color: #2196F3; font-weight: bold; }
+
+        /* 加载状态样式 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="notification-container"></div>
+    <div id="select-hint">点击地图选择地标位置，然后填写表单并提交</div>
+    <div id="confirm-location-modal">
+        <div class="title">是否确定以这个位置创建一个地标？</div>
+        <div class="coords">经度: <span id="confirm-lng"></span>，纬度: <span id="confirm-lat"></span></div>
+        <div class="actions">
+            <button id="btn-reselect" class="btn-reselect">重新选择</button>
+            <button id="btn-cancel" class="btn-cancel">取消</button>
+            <button id="btn-confirm" class="btn-confirm">确认</button>
+        </div>
+    </div>
+    
+    <!-- 按钮容器 -->
+    <div class="buttons-container">
+        <div id="create-landmark-btn" title="创建地标" style="display:none;"><span class="icon-green">＋</span></div>
+        <div id="landmarks-list-btn" title="地标列表"><span class="icon-blue">≡</span></div>
+        <div id="upload-recognize-btn" title="上传识别">📷</div>
+        <div id="favorite-button" title="我的收藏">❤</div>
+        <div id="auth-button" title="登录">👤</div>
+    </div>
+
+    <!-- 隐藏的文件选择输入 -->
+    <input type="file" id="upload-input" accept="image/*" style="display:none;" />
+
+    <!-- 地标创建/编辑表单 -->
+    <div id="landmark-form">
+        <h3 id="form-title">创建新地标</h3>
+        <form id="landmark-form-content" novalidate>
+            <div class="form-group">
+                <label for="landmark-name">地标名称 *</label>
+                <input type="text" id="landmark-name" required>
+            </div>
+            <div class="form-group">
+                <label for="landmark-description">描述 *</label>
+                <textarea id="landmark-description" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="landmark-category">分类</label>
+                <select id="landmark-category">
+                    <option value="其他">其他</option>
+                    <option value="餐厅">餐厅</option>
+                    <option value="景点">景点</option>
+                    <option value="购物">购物</option>
+                    <option value="交通">交通</option>
+                    <option value="住宿">住宿</option>
+                    <option value="娱乐">娱乐</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>坐标 <span id="reselect-hint" style="font-size: 11px; color: #2196F3; cursor: pointer; display: none;" onclick="reselectLocation()">(重新选择)</span></label>
+                <div style="font-size: 12px; color: #666;">
+                    经度: <span id="landmark-lng"></span><br>
+                    纬度: <span id="landmark-lat"></span>
+                </div>
+            </div>
+            <div class="form-buttons">
+                <button type="button" class="btn-secondary" onclick="closeLandmarkForm()">取消</button>
+                <button type="submit" class="btn-primary" id="submit-btn">创建地标</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 地标列表 -->
+    <div id="landmarks-list">
+        <h3>地标列表</h3>
+        <div id="landmarks-container">
+            <div class="loading"></div> 加载中...
+        </div>
+    </div>
+
+    <!-- 收藏列表弹窗 -->
+    <div id="favorites-popup">
+        <h3>收藏列表</h3>
+        <div id="favorites-container"></div>
+    </div>
+
+    <!-- 上传加载遮罩 -->
+    <div id="upload-overlay">
+        <div class="upload-spinner">
+            <div class="spinner"></div>
+            <div class="upload-text">正在识别图片...</div>
+        </div>
+    </div>
+
+    <!-- 识别结果弹窗 -->
+    <div id="recognition-result-modal">
+        <div class="modal-header">
+            <div class="modal-title">📷 识别结果</div>
+            <button class="close-btn" onclick="closeRecognitionModal()">×</button>
+        </div>
+        <img id="recognition-image-preview" class="image-preview" src="" alt="上传的图片" style="display:none;">
+        <div class="result-content">
+            <div class="result-item">
+                <div class="result-label">识别地标：</div>
+                <div id="recognition-landmark" class="result-value">-</div>
+            </div>
+            <div class="result-item" id="recognition-status-item" style="display:none;">
+                <div class="result-label">识别状态：</div>
+                <div id="recognition-status" class="result-value">-</div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-close" onclick="closeRecognitionModal()">关闭</button>
+            <button id="btn-create-from-recognition" class="btn-create-landmark" style="display:none;">创建地标</button>
+        </div>
+    </div>
+
+    <!-- 登录遮罩层 -->
+    <div id="login-overlay"></div>
+
+    <!-- 登录弹窗 -->
+    <div id="login-modal">
+        <div class="modal-header">
+            <div class="modal-title">管理员登录</div>
+            <button class="close-btn" onclick="closeLoginModal()">×</button>
+        </div>
+        <form id="login-form" class="login-form">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <div class="error-message" id="login-error"></div>
+            <button type="submit" class="login-btn" id="login-btn">登录</button>
+        </form>
+    </div>
+
+    <script>
+        // Mapbox访问令牌
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZWxzaWVsZWhuZXIiLCJhIjoiY21hcnp2M2E3MGNnMzJrcHM4NDc1c2pydSJ9.yPLxXM2yfoh72lxbKvHZ4A';
+        
+        // 后端API基础URL
+        // const API_BASE_URL = 'http://47.109.150.241:8000';
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        // 存储地标数据
+        let landmarks = [];
+        let selectedLandmark = null;
+        let isCreatingLandmark = false;
+        let isEditingLandmark = false;
+        let editingLandmarkId = null;
+        let tempMarker = null;
+        let currentPopup = null; // 记录当前打开的弹窗，便于删除后自动关闭
+        let currentRecognitionResult = null; // 存储当前识别结果
+        
+        // 用户认证状态
+        let currentUser = null;
+        let authToken = null;
+        
+        // 收藏地标管理
+        let favoriteLandmarks = [];
+
+        // 从localStorage加载收藏列表
+        function loadFavoritesFromStorage() {
+            const stored = localStorage.getItem('favoriteLandmarks');
+            if (stored) {
+                try {
+                    favoriteLandmarks = JSON.parse(stored);
+                } catch (e) {
+                    console.error('Failed to parse favorites:', e);
+                    favoriteLandmarks = [];
+                }
+            }
+        }
+
+        // 保存收藏列表到localStorage
+        function saveFavoritesToStorage() {
+            localStorage.setItem('favoriteLandmarks', JSON.stringify(favoriteLandmarks));
+        }
+
+        // 检查地标是否已收藏
+        function isFavorite(landmarkId) {
+            return favoriteLandmarks.some(fav => fav.id == landmarkId);
+        }
+
+        // 添加收藏
+        function addToFavorites(landmark) {
+            if (!isFavorite(landmark.id)) {
+                favoriteLandmarks.push({
+                    id: landmark.id,
+                    name: landmark.name,
+                    description: landmark.description,
+                    category: landmark.category,
+                    latitude: landmark.latitude,
+                    longitude: landmark.longitude
+                });
+                saveFavoritesToStorage();
+                showNotification(`已收藏：${landmark.name}`);
+                return true;
+            }
+            return false;
+        }
+
+        // 取消收藏
+        function removeFromFavorites(landmarkId) {
+            const index = favoriteLandmarks.findIndex(fav => fav.id == landmarkId);
+            if (index !== -1) {
+                const name = favoriteLandmarks[index].name;
+                favoriteLandmarks.splice(index, 1);
+                saveFavoritesToStorage();
+                showNotification(`已取消收藏：${name}`);
+                return true;
+            }
+            return false;
+        }
+
+        // 切换收藏状态
+        function toggleFavorite(landmarkId) {
+            const landmark = landmarks.find(l => l.id == landmarkId);
+            if (!landmark) {
+                showNotification('地标不存在');
+                return;
+            }
+
+            if (isFavorite(landmarkId)) {
+                removeFromFavorites(landmarkId);
+            } else {
+                addToFavorites(landmark);
+            }
+            
+            // 更新收藏列表显示（如果打开着）
+            const favPopup = document.getElementById('favorites-popup');
+            if (favPopup.style.display === 'block') {
+                updateFavoritesList();
+            }
+            
+            // 如果当前有打开的地标弹窗，刷新它以更新收藏按钮状态
+            if (currentPopup) {
+                // 重新显示弹窗
+                const features = map.queryRenderedFeatures({layers: ['landmarks-layer']});
+                const feature = features.find(f => f.properties.id == landmarkId);
+                if (feature) {
+                    showLandmarkPopup(feature);
+                }
+            }
+        }
+
+        // 更新收藏列表显示
+        function updateFavoritesList() {
+            const container = document.getElementById('favorites-container');
+            
+            if (favoriteLandmarks.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">暂无收藏</p>';
+                return;
+            }
+
+            let html = '';
+            favoriteLandmarks.forEach(landmark => {
+                html += `
+                    <div class="landmark-item" onclick="flyToLandmarkAndClose(${landmark.longitude}, ${landmark.latitude}, '${landmark.id}')">
+                        <div class="landmark-title">${landmark.name}</div>
+                        <div class="landmark-description">${landmark.description}</div>
+                        <div class="landmark-category">${landmark.category}</div>
+                        <div class="landmark-actions">
+                            <button class="btn-delete" onclick="event.stopPropagation(); removeFromFavorites('${landmark.id}'); updateFavoritesList();">取消收藏</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // 飞行到地标并关闭收藏弹窗
+        function flyToLandmarkAndClose(lng, lat, landmarkId) {
+            // 关闭收藏弹窗
+            document.getElementById('favorites-popup').style.display = 'none';
+            
+            // 飞到地标位置
+            flyToLandmark(lng, lat);
+            
+            // 延迟后显示地标详情
+            setTimeout(() => {
+                const features = map.queryRenderedFeatures({layers: ['landmarks-layer']});
+                const feature = features.find(f => f.properties.id == landmarkId);
+                if (feature) {
+                    showLandmarkPopup(feature);
+                }
+            }, 2000);
+        }
+
+        // 从localStorage加载认证信息
+        function loadAuthFromStorage() {
+            const stored = localStorage.getItem('authData');
+            if (stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    currentUser = data.user;
+                    authToken = data.token;
+                    return true;
+                } catch (e) {
+                    console.error('Failed to parse auth data:', e);
+                    localStorage.removeItem('authData');
+                }
+            }
+            return false;
+        }
+
+        // 保存认证信息到localStorage
+        function saveAuthToStorage(user, token) {
+            localStorage.setItem('authData', JSON.stringify({ user, token }));
+            currentUser = user;
+            authToken = token;
+        }
+
+        // 清除认证信息
+        function clearAuth() {
+            localStorage.removeItem('authData');
+            currentUser = null;
+            authToken = null;
+        }
+
+        // 检查用户是否为管理员
+        function isAdmin() {
+            return currentUser && (currentUser.is_staff || currentUser.is_superuser);
+        }
+
+        // 更新UI显示管理员功能按钮
+        function updateUIForAuth() {
+            const authBtn = document.getElementById('auth-button');
+            const createBtn = document.getElementById('create-landmark-btn');
+            
+            if (isAdmin()) {
+                // 已登录管理员
+                authBtn.classList.add('logged-in');
+                authBtn.title = `${currentUser.username} (点击登出)`;
+                authBtn.innerHTML = '👤';
+                createBtn.style.display = 'flex';
+            } else {
+                // 未登录或普通用户
+                authBtn.classList.remove('logged-in');
+                authBtn.title = '登录';
+                authBtn.innerHTML = '👤';
+                createBtn.style.display = 'none';
+            }
+        }
+
+        // 获取请求头（包含认证Token）
+        function getAuthHeaders() {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (authToken) {
+                headers['Authorization'] = `Token ${authToken}`;
+            }
+            return headers;
+        }
+        
+        // 初始化地图
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [104.06, 30.6168], // 成都坐标
+            zoom: 15
+        });
+
+        // 地图加载完成后初始化
+        map.on('load', async () => {
+            // 加载认证状态
+            loadAuthFromStorage();
+            updateUIForAuth();
+            
+            // 加载收藏列表
+            loadFavoritesFromStorage();
+            
+            await loadLandmarks();
+            addLandmarksToMap();
+            
+            // 添加地图点击事件
+            map.on('click', handleMapClick);
+        });
+
+        // 加载地标数据
+        async function loadLandmarks() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/locations`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    landmarks = result.data;
+                    showNotification('地标数据加载成功');
+                } else {
+                    showNotification('加载地标数据失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('加载地标数据错误:', error);
+                showNotification('加载地标数据时发生错误');
+            }
+        }
+
+        // 将地标添加到地图
+        function addLandmarksToMap() {
+            // 移除现有的地标图层
+            if (map.getLayer('landmarks-layer')) {
+                map.removeLayer('landmarks-layer');
+            }
+            if (map.getSource('landmarks')) {
+                map.removeSource('landmarks');
+            }
+
+            // 创建GeoJSON数据
+            const geojson = {
+                type: 'FeatureCollection',
+                features: landmarks.map(landmark => ({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [landmark.longitude, landmark.latitude]
+                    },
+                    properties: {
+                        id: landmark.id,
+                        name: landmark.name,
+                        description: landmark.description,
+                        category: landmark.category
+                    }
+                }))
+            };
+
+            // 添加地标源
+            map.addSource('landmarks', {
+                type: 'geojson',
+                data: geojson
+            });
+
+            // 添加地标图层
+            map.addLayer({
+                id: 'landmarks-layer',
+                type: 'circle',
+                source: 'landmarks',
+                paint: {
+                    'circle-radius': 8,
+                    // 根据分类显示不同颜色
+                    'circle-color': [
+                        'match',
+                        ['get', 'category'],
+                        '餐厅', '#FF9800',    // 橙色
+                        '景点', '#4CAF50',    // 绿色
+                        '购物', '#9C27B0',    // 紫色
+                        '交通', '#2196F3',    // 蓝色
+                        '住宿', '#00BCD4',    // 青色
+                        '娱乐', '#E91E63',    // 粉色
+                        '#FF0000'             // 其他 - 红色（默认值）
+                    ],
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#FFFFFF'
+                }
+            });
+
+            // 添加点击事件
+            map.on('click', 'landmarks-layer', (e) => {
+                if (e.features.length > 0) {
+                    const feature = e.features[0];
+                    showLandmarkPopup(feature);
+                }
+            });
+
+            // 鼠标悬停效果
+            map.on('mouseenter', 'landmarks-layer', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'landmarks-layer', () => {
+                map.getCanvas().style.cursor = '';
+            });
+        }
+
+        // 显示地标弹窗
+        function showLandmarkPopup(feature) {
+            const coordinates = feature.geometry.coordinates.slice();
+            const properties = feature.properties;
+
+            // 检查是否已收藏
+            const favorited = isFavorite(properties.id);
+            const favoriteIcon = favorited ? '❤️' : '🤍';
+            const favoriteText = favorited ? '已收藏' : '收藏';
+
+            // 收藏按钮（所有用户可见）
+            const favoriteButton = `
+                <button onclick="toggleFavorite('${properties.id}')" style="background: #FF4081; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-size: 11px;">
+                    ${favoriteIcon} ${favoriteText}
+                </button>
+            `;
+
+            // 根据用户权限决定是否显示编辑/删除按钮
+            let adminButtons = '';
+            if (isAdmin()) {
+                adminButtons = `
+                    <button onclick="editLandmark('${properties.id}')" style="background: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-size: 11px;">编辑</button>
+                    <button onclick="deleteLandmark('${properties.id}')" style="background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;">删除</button>
+                `;
+            }
+
+            const popupContent = `
+                <div style="padding: 10px; max-width: 200px;">
+                    <h4 style="margin: 0 0 8px 0;">${properties.name}</h4>
+                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #666;">${properties.description}</p>
+                    <span style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 11px;">${properties.category}</span>
+                    <div style="margin-top: 10px;">
+                        ${favoriteButton}
+                        ${adminButtons}
+                    </div>
+                </div>
+            `;
+
+            if (currentPopup) {
+                currentPopup.remove();
+                currentPopup = null;
+            }
+            const popup = new mapboxgl.Popup()
+                .setLngLat(coordinates)
+                .setHTML(popupContent)
+                .addTo(map);
+            currentPopup = popup;
+        }
+
+        // 处理地图点击事件
+        function handleMapClick(e) {
+            if (isCreatingLandmark) {
+                const lngLat = e.lngLat;
+                document.getElementById('landmark-lng').textContent = lngLat.lng.toFixed(6);
+                document.getElementById('landmark-lat').textContent = lngLat.lat.toFixed(6);
+                selectedLandmark = { longitude: lngLat.lng, latitude: lngLat.lat };
+
+                // 显示/更新临时标记点
+                const markerColor = isEditingLandmark ? '#2196F3' : '#4CAF50';
+                if (tempMarker) {
+                    tempMarker.setLngLat([lngLat.lng, lngLat.lat]);
+                } else {
+                    tempMarker = new mapboxgl.Marker({ color: markerColor })
+                        .setLngLat([lngLat.lng, lngLat.lat])
+                        .addTo(map);
+                }
+
+                if (isEditingLandmark) {
+                    // 编辑模式：直接更新位置，不需要确认框
+                    showNotification('位置已更新为：经度 ' + lngLat.lng.toFixed(6) + '，纬度 ' + lngLat.lat.toFixed(6));
+                    map.getCanvas().style.cursor = '';
+                    isCreatingLandmark = false;
+                    
+                    // 确保表单保持显示并聚焦
+                    const form = document.getElementById('landmark-form');
+                    if (form.style.display === 'none') {
+                        form.style.display = 'block';
+                    }
+                } else {
+                    // 创建模式：弹出确认框
+                    const confirmModal = document.getElementById('confirm-location-modal');
+                    document.getElementById('confirm-lng').textContent = lngLat.lng.toFixed(6);
+                    document.getElementById('confirm-lat').textContent = lngLat.lat.toFixed(6);
+                    confirmModal.style.display = 'block';
+                }
+            }
+        }
+
+        // 地标列表按钮点击事件
+        document.getElementById('landmarks-list-btn').addEventListener('click', () => {
+            const list = document.getElementById('landmarks-list');
+            if (list.style.display === 'none' || !list.style.display) {
+                list.style.display = 'block';
+                updateLandmarksList();
+            } else {
+                list.style.display = 'none';
+            }
+        });
+
+        // 收藏按钮点击事件 - 切换收藏弹窗
+        document.getElementById('favorite-button').addEventListener('click', () => {
+            const popup = document.getElementById('favorites-popup');
+            if (popup.style.display === 'none' || !popup.style.display) {
+                popup.style.display = 'block';
+                updateFavoritesList();
+            } else {
+                popup.style.display = 'none';
+            }
+        });
+
+        // 上传识别按钮点击事件
+        document.getElementById('upload-recognize-btn').addEventListener('click', () => {
+            document.getElementById('upload-input').click();
+        });
+
+        // 文件选择事件
+        document.getElementById('upload-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // 验证文件类型
+            if (!file.type.startsWith('image/')) {
+                showNotification('请选择图片文件');
+                return;
+            }
+            
+            // 验证文件大小（限制10MB）
+            if (file.size > 10 * 1024 * 1024) {
+                showNotification('图片文件不能超过10MB');
+                return;
+            }
+            
+            await uploadAndRecognize(file);
+            
+            // 清空input值，允许重复选择同一文件
+            e.target.value = '';
+        });
+
+        // 关闭地标创建/编辑表单
+        function closeLandmarkForm() {
+            document.getElementById('landmark-form').style.display = 'none';
+            document.getElementById('landmark-form-content').reset();
+            isCreatingLandmark = false;
+            isEditingLandmark = false;
+            editingLandmarkId = null;
+            selectedLandmark = null;
+            // 隐藏提示并恢复光标
+            const hint = document.getElementById('select-hint');
+            hint.style.display = 'none';
+            map.getCanvas().style.cursor = '';
+            // 清理临时标记
+            if (tempMarker) {
+                tempMarker.remove();
+                tempMarker = null;
+            }
+            // 清空坐标显示
+            document.getElementById('landmark-lng').textContent = '';
+            document.getElementById('landmark-lat').textContent = '';
+            // 关闭确认框
+            const confirmModal = document.getElementById('confirm-location-modal');
+            confirmModal.style.display = 'none';
+            // 重置表单标题和按钮文字
+            document.getElementById('form-title').textContent = '创建新地标';
+            document.getElementById('submit-btn').textContent = '创建地标';
+            document.getElementById('reselect-hint').style.display = 'none';
+        }
+
+        // 提交地标创建/编辑表单
+        document.getElementById('landmark-form-content').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 权限检查
+            if (!isAdmin()) {
+                showNotification('需要管理员权限');
+                openLoginModal();
+                return;
+            }
+            
+            // 手动校验
+            const nameInput = document.getElementById('landmark-name');
+            const descInput = document.getElementById('landmark-description');
+            const nameVal = (nameInput.value || '').trim();
+            const descVal = (descInput.value || '').trim();
+
+            if (!nameVal) {
+                showNotification('请填写地标名称');
+                nameInput.focus();
+                return;
+            }
+
+            if (!descVal) {
+                showNotification('请填写地标描述');
+                descInput.focus();
+                return;
+            }
+
+            if (!selectedLandmark) {
+                showNotification('请先在地图上选择位置');
+                return;
+            }
+
+            const formData = {
+                name: nameVal,
+                description: descVal,
+                category: document.getElementById('landmark-category').value,
+                latitude: selectedLandmark.latitude,
+                longitude: selectedLandmark.longitude
+            };
+
+            // 允许提交
+            const submitBtn = document.querySelector('#landmark-form-content .btn-primary');
+            if (submitBtn) submitBtn.disabled = false;
+
+            try {
+                let response, result;
+                
+                if (isEditingLandmark && editingLandmarkId) {
+                    // 编辑模式：更新地标
+                    response = await fetch(`${API_BASE_URL}/landmarks/${editingLandmarkId}`, {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(formData)
+                    });
+                    result = await response.json();
+                    
+                    if (result.success) {
+                        showNotification('地标更新成功');
+                        closeLandmarkForm();
+                        await loadLandmarks();
+                        addLandmarksToMap();
+                    } else {
+                        showNotification('更新地标失败: ' + result.message);
+                    }
+                } else {
+                    // 创建模式：创建新地标
+                    response = await fetch(`${API_BASE_URL}/landmarks`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(formData)
+                    });
+                    result = await response.json();
+                    
+                    if (result.success) {
+                        showNotification('地标创建成功');
+                        // 同步到 /map/location，按 GeoJSON Feature 数组格式
+                        const geojsonFeatures = [
+                            {
+                                type: 'Feature',
+                                properties: {
+                                    name: formData.name
+                                },
+                                geometry: {
+                                    coordinates: [formData.longitude, formData.latitude],
+                                    type: 'Point'
+                                }
+                            }
+                        ];
+
+                        try {
+                            const syncResp = await fetch(`${API_BASE_URL}/map/location`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(geojsonFeatures)
+                            });
+                            const syncResult = await syncResp.json();
+                            if (syncResult && syncResult.success) {
+                                showNotification('已同步地标到后端');
+                                console.log('Map location response:', syncResult);
+                            } else {
+                                showNotification('同步地标失败' + (syncResult && syncResult.message ? ': ' + syncResult.message : ''));
+                            }
+                        } catch (syncError) {
+                            console.error('同步地标错误:', syncError);
+                            showNotification('同步地标时发生错误');
+                        }
+                        closeLandmarkForm();
+                        await loadLandmarks();
+                        addLandmarksToMap();
+                    } else {
+                        showNotification('创建地标失败: ' + result.message);
+                    }
+                }
+            } catch (error) {
+                console.error(isEditingLandmark ? '更新地标错误:' : '创建地标错误:', error);
+                showNotification((isEditingLandmark ? '更新' : '创建') + '地标时发生错误');
+            }
+        });
+
+        // 确认弹窗按钮事件
+        document.getElementById('btn-confirm').addEventListener('click', (e) => {
+            e.stopPropagation();
+            // 用户确认后，展示表单
+            const confirmModal = document.getElementById('confirm-location-modal');
+            confirmModal.style.display = 'none';
+            document.getElementById('landmark-form').style.display = 'block';
+            const hint = document.getElementById('select-hint');
+            hint.textContent = '已选择位置，请填写表单并提交';
+            map.getCanvas().style.cursor = '';
+            // 启用提交并聚焦名称输入
+            const submitBtn = document.querySelector('#landmark-form-content .btn-primary');
+            if (submitBtn) submitBtn.disabled = false;
+            const nameInput = document.getElementById('landmark-name');
+            if (nameInput) nameInput.focus();
+        });
+
+        document.getElementById('btn-reselect').addEventListener('click', () => {
+            // 重新选择位置：保持创建模式，隐藏弹窗并等待用户再次点击
+            const confirmModal = document.getElementById('confirm-location-modal');
+            confirmModal.style.display = 'none';
+            showNotification('请在地图上点击重新选择位置');
+            const hint = document.getElementById('select-hint');
+            hint.style.display = 'block';
+            hint.textContent = '点击地图选择地标位置';
+            map.getCanvas().style.cursor = 'crosshair';
+        });
+
+        document.getElementById('btn-cancel').addEventListener('click', () => {
+            // 取消创建流程
+            closeLandmarkForm();
+        });
+
+        // 更新地标列表显示
+        function updateLandmarksList() {
+            const container = document.getElementById('landmarks-container');
+            
+            if (landmarks.length === 0) {
+                container.innerHTML = '<p>暂无地标</p>';
+                return;
+            }
+
+            let html = '';
+            landmarks.forEach(landmark => {
+                // 根据用户权限决定是否显示编辑/删除按钮
+                let actionButtons = '';
+                if (isAdmin()) {
+                    actionButtons = `
+                        <div class="landmark-actions">
+                            <button class="btn-edit" onclick="event.stopPropagation(); editLandmark('${landmark.id}')">编辑</button>
+                            <button class="btn-delete" onclick="event.stopPropagation(); deleteLandmark('${landmark.id}')">删除</button>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    <div class="landmark-item" onclick="flyToLandmark(${landmark.longitude}, ${landmark.latitude})">
+                        <div class="landmark-title">${landmark.name}</div>
+                        <div class="landmark-description">${landmark.description}</div>
+                        <div class="landmark-category">${landmark.category}</div>
+                        ${actionButtons}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // 飞行到地标位置
+        function flyToLandmark(lng, lat) {
+            map.flyTo({
+                center: [lng, lat],
+                zoom: 17
+            });
+        }
+
+        // 编辑地标
+        async function editLandmark(id) {
+            // 权限检查
+            if (!isAdmin()) {
+                showNotification('需要管理员权限');
+                openLoginModal();
+                return;
+            }
+            
+            // 使用宽松比较以处理字符串和数字ID
+            const landmark = landmarks.find(l => l.id == id);
+            if (!landmark) {
+                console.log('查找地标失败，ID:', id, '地标列表:', landmarks);
+                showNotification('未找到该地标');
+                return;
+            }
+
+            // 关闭当前弹窗
+            if (currentPopup) {
+                currentPopup.remove();
+                currentPopup = null;
+            }
+
+            // 设置编辑模式
+            isEditingLandmark = true;
+            editingLandmarkId = id;
+            isCreatingLandmark = false;
+
+            // 预填充表单数据
+            document.getElementById('landmark-name').value = landmark.name;
+            document.getElementById('landmark-description').value = landmark.description;
+            document.getElementById('landmark-category').value = landmark.category || '其他';
+            
+            // 设置当前位置
+            selectedLandmark = {
+                longitude: landmark.longitude,
+                latitude: landmark.latitude
+            };
+            
+            // 显示坐标
+            document.getElementById('landmark-lng').textContent = landmark.longitude.toFixed(6);
+            document.getElementById('landmark-lat').textContent = landmark.latitude.toFixed(6);
+            
+            // 显示临时标记
+            if (tempMarker) {
+                tempMarker.setLngLat([landmark.longitude, landmark.latitude]);
+            } else {
+                tempMarker = new mapboxgl.Marker({ color: '#2196F3' })
+                    .setLngLat([landmark.longitude, landmark.latitude])
+                    .addTo(map);
+            }
+            
+            // 飞行到该地标
+            map.flyTo({
+                center: [landmark.longitude, landmark.latitude],
+                zoom: 17
+            });
+            
+            // 更新表单标题和按钮
+            document.getElementById('form-title').textContent = '编辑地标';
+            document.getElementById('submit-btn').textContent = '更新地标';
+            document.getElementById('reselect-hint').style.display = 'inline';
+            
+            // 显示表单
+            document.getElementById('landmark-form').style.display = 'block';
+            
+            // 关闭地标列表
+            document.getElementById('landmarks-list').style.display = 'none';
+            
+            showNotification('可以修改地标信息，或点击"重新选择"来改变位置');
+        }
+
+        // 重新选择位置（编辑模式下）
+        function reselectLocation() {
+            if (!isEditingLandmark) return;
+            
+            showNotification('📍 请在地图上点击选择新位置');
+            map.getCanvas().style.cursor = 'crosshair';
+            
+            // 临时进入选点模式
+            isCreatingLandmark = true;
+            
+            // 高亮显示坐标区域，提醒用户注意查看
+            const coordsLabel = document.querySelector('#landmark-form .form-group:nth-child(4)');
+            if (coordsLabel) {
+                coordsLabel.style.backgroundColor = '#FFF9C4';
+                setTimeout(() => {
+                    coordsLabel.style.backgroundColor = '';
+                }, 2000);
+            }
+        }
+
+        // 删除地标
+        async function deleteLandmark(id) {
+            // 权限检查
+            if (!isAdmin()) {
+                showNotification('需要管理员权限');
+                openLoginModal();
+                return;
+            }
+            
+            if (!confirm('确定要删除这个地标吗？')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/landmarks/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (currentPopup) {
+                        currentPopup.remove();
+                        currentPopup = null;
+                    }
+                    showNotification('地标删除成功');
+                    await loadLandmarks();
+                    addLandmarksToMap();
+                    updateLandmarksList();
+                } else {
+                    showNotification('删除地标失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('删除地标错误:', error);
+                showNotification('删除地标时发生错误');
+            }
+        }
+
+        // 显示提示信息
+        function showNotification(message) {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            container.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // 上传并识别图片
+        async function uploadAndRecognize(file) {
+            // 显示加载遮罩
+            const overlay = document.getElementById('upload-overlay');
+            overlay.style.display = 'flex';
+
+            try {
+                // 创建FormData
+                const formData = new FormData();
+                formData.append('image', file);
+
+                // 上传并识别
+                const response = await fetch(`${API_BASE_URL}/api/upload-image/`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                // 隐藏加载遮罩
+                overlay.style.display = 'none';
+
+                // 显示识别结果
+                showRecognitionResult(file, result);
+
+            } catch (error) {
+                console.error('上传识别错误:', error);
+                overlay.style.display = 'none';
+                showNotification('图片识别失败: ' + error.message);
+            }
+        }
+
+        // 显示识别结果弹窗
+        function showRecognitionResult(file, result) {
+            currentRecognitionResult = result;
+            
+            const recognition = result.recognition || {};
+            const success = recognition.success || false;
+            const landmark = recognition.landmark || '未识别到地标';
+            const matchedLocation = result.matched_location || null;
+
+            const modal = document.getElementById('recognition-result-modal');
+            const imagePreview = document.getElementById('recognition-image-preview');
+            const landmarkEl = document.getElementById('recognition-landmark');
+            const statusEl = document.getElementById('recognition-status');
+            const statusItem = document.getElementById('recognition-status-item');
+            const createBtn = document.getElementById('btn-create-from-recognition');
+
+            // 显示图片预览
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+
+            // 显示识别结果
+            if (success && landmark && landmark !== '未识别到地标') {
+                landmarkEl.textContent = landmark;
+                landmarkEl.className = 'result-value success';
+                
+                // 如果在数据库中找到了匹配的地标
+                if (matchedLocation) {
+                    statusEl.textContent = '识别成功 ✓ (已在数据库中)';
+                    statusEl.className = 'result-value success';
+                    statusItem.style.display = 'block';
+                    createBtn.style.display = 'inline-block';
+                    createBtn.textContent = '跳转到地标';
+                    
+                    // 绑定跳转按钮
+                    createBtn.onclick = () => {
+                        // 关闭识别结果弹窗
+                        closeRecognitionModal();
+                        
+                        // 显示跳转提示
+                        showNotification(`正在跳转到 ${matchedLocation.name}...`);
+                        
+                        // 飞到地标位置
+                        map.flyTo({
+                            center: [matchedLocation.longitude, matchedLocation.latitude],
+                            zoom: 17,
+                            duration: 2000
+                        });
+                        
+                        // 等待飞行动画完成后显示地标弹窗
+                        setTimeout(() => {
+                            // 构造与地图上点击地标相同的 feature 对象
+                            const feature = {
+                                geometry: {
+                                    coordinates: [matchedLocation.longitude, matchedLocation.latitude]
+                                },
+                                properties: {
+                                    id: matchedLocation.id,
+                                    name: matchedLocation.name,
+                                    description: matchedLocation.description,
+                                    category: matchedLocation.category
+                                }
+                            };
+                            showLandmarkPopup(feature);
+                        }, 2200);
+                    };
+                } else {
+                    // 识别成功但数据库中未找到
+                    statusEl.textContent = '识别成功（数据库中未找到）';
+                    statusEl.className = 'result-value';
+                    statusEl.style.color = '#FF9800';
+                    statusItem.style.display = 'block';
+                    createBtn.style.display = 'inline-block';
+                    createBtn.textContent = '创建新地标';
+                    
+                    // 绑定创建地标按钮
+                    createBtn.onclick = () => {
+                        createLandmarkFromRecognition(landmark);
+                    };
+                }
+            } else {
+                landmarkEl.textContent = landmark;
+                landmarkEl.className = 'result-value error';
+                statusEl.textContent = '识别失败 ✗';
+                statusEl.className = 'result-value error';
+                statusItem.style.display = 'block';
+                createBtn.style.display = 'none';
+            }
+
+            modal.style.display = 'block';
+        }
+
+        // 关闭识别结果弹窗
+        function closeRecognitionModal() {
+            const modal = document.getElementById('recognition-result-modal');
+            modal.style.display = 'none';
+            currentRecognitionResult = null;
+        }
+
+        // 从识别结果创建地标
+        function createLandmarkFromRecognition(landmarkName) {
+            // 关闭识别结果弹窗
+            closeRecognitionModal();
+            
+            // 重置表单
+            document.getElementById('landmark-form-content').reset();
+            document.getElementById('form-title').textContent = '创建新地标';
+            document.getElementById('submit-btn').textContent = '创建地标';
+            document.getElementById('reselect-hint').style.display = 'none';
+            
+            // 预填充地标名称
+            document.getElementById('landmark-name').value = landmarkName;
+            
+            // 清空坐标和标记
+            selectedLandmark = null;
+            document.getElementById('landmark-lng').textContent = '';
+            document.getElementById('landmark-lat').textContent = '';
+            if (tempMarker) {
+                tempMarker.remove();
+                tempMarker = null;
+            }
+            
+            // 提示用户选择位置
+            showNotification('请在地图上点击选择 "' + landmarkName + '" 的位置');
+            
+            // 进入创建模式
+            isCreatingLandmark = true;
+            isEditingLandmark = false;
+            editingLandmarkId = null;
+            
+            // 设置光标为十字
+            map.getCanvas().style.cursor = 'crosshair';
+            
+            // 禁用提交按钮直到选点
+            const submitBtn = document.querySelector('#landmark-form-content .btn-primary');
+            if (submitBtn) submitBtn.disabled = true;
+        }
+
+        // 登录相关函数
+        function openLoginModal() {
+            document.getElementById('login-overlay').style.display = 'block';
+            document.getElementById('login-modal').style.display = 'block';
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('login-form').reset();
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        // 登录表单提交
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('login-btn');
+            const errorEl = document.getElementById('login-error');
+            
+            // 禁用按钮
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+            errorEl.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 保存认证信息
+                    saveAuthToStorage(result.data, result.data.token);
+                    updateUIForAuth();
+                    closeLoginModal();
+                    showNotification('登录成功！欢迎，' + result.data.username);
+                } else {
+                    errorEl.textContent = result.message || '登录失败';
+                    errorEl.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                errorEl.textContent = '网络错误，请稍后重试';
+                errorEl.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登录';
+            }
+        });
+
+        // 登出函数
+        async function logout() {
+            if (!authToken) return;
+            
+            try {
+                await fetch(`${API_BASE_URL}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+            } catch (error) {
+                console.error('登出错误:', error);
+            }
+            
+            clearAuth();
+            updateUIForAuth();
+            showNotification('已退出登录');
+        }
+
+        // 登录/登出按钮点击事件
+        document.getElementById('auth-button').addEventListener('click', () => {
+            if (isAdmin()) {
+                // 已登录，执行登出
+                if (confirm('确定要退出登录吗？')) {
+                    logout();
+                }
+            } else {
+                // 未登录，显示登录弹窗
+                openLoginModal();
+            }
+        });
+
+        // 点击遮罩层关闭登录弹窗
+        document.getElementById('login-overlay').addEventListener('click', () => {
+            closeLoginModal();
+        });
+
+        // 创建地标按钮需要权限检查
+        document.getElementById('create-landmark-btn').addEventListener('click', () => {
+            if (!isAdmin()) {
+                showNotification('需要管理员权限');
+                openLoginModal();
+                return;
+            }
+            isCreatingLandmark = true;
+            document.getElementById('landmark-form').style.display = 'none';
+            showNotification('请在地图上点击选择地标位置');
+            map.getCanvas().style.cursor = 'crosshair';
+            const submitBtn = document.querySelector('#landmark-form-content .btn-primary');
+            if (submitBtn) submitBtn.disabled = true;
+        });
+
+        // 点击空白处关闭弹窗
+        document.addEventListener('click', (e) => {
+            const form = document.getElementById('landmark-form');
+            const list = document.getElementById('landmarks-list');
+            const createBtn = document.getElementById('create-landmark-btn');
+            const listBtn = document.getElementById('landmarks-list-btn');
+            const confirmModal = document.getElementById('confirm-location-modal');
+            const favoritesBtn = document.getElementById('favorite-button');
+            const favoritesPopup = document.getElementById('favorites-popup');
+            const mapContainer = document.getElementById('map');
+            const recognitionModal = document.getElementById('recognition-result-modal');
+            const uploadBtn = document.getElementById('upload-recognize-btn');
+
+            // 如果点击的是地图且处于选点模式，不关闭表单
+            if (mapContainer.contains(e.target) && (isCreatingLandmark || isEditingLandmark)) {
+                return;
+            }
+
+            if (!form.contains(e.target) && !createBtn.contains(e.target) && !confirmModal.contains(e.target)) {
+                form.style.display = 'none';
+            }
+
+            if (!list.contains(e.target) && !listBtn.contains(e.target)) {
+                list.style.display = 'none';
+            }
+
+            if (!favoritesPopup.contains(e.target) && !favoritesBtn.contains(e.target)) {
+                favoritesPopup.style.display = 'none';
+            }
+
+            if (!recognitionModal.contains(e.target) && !uploadBtn.contains(e.target)) {
+                // 不关闭，因为用户可能想看识别结果，需要手动关闭
+                // recognitionModal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 

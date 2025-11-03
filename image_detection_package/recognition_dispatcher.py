@@ -1,20 +1,26 @@
-# 注：本地模型可选导入（无 torch 也可跑 Qwen-only 路径）
-try:
-    from .landmark_predictor import LandmarkPredictor  # 可选
-except Exception:
-    LandmarkPredictor = None
-# 注：默认使用 Qwen 与本地模型；Baidu 模块非必需（保留 UNUSED 版本供将来启用）
-try:
-    from .baidu_facade_service import BaiduFacadeService  # 可选
-except Exception:  # pragma: no cover - 不影响 Qwen-only 路径
-    BaiduFacadeService = None
-from .qwen_vl_service import QwenVLService
-from .constants import ALLOWED_LANDMARKS_CN
 import logging
 import os
 import threading
 
+# 先初始化 logger
 logger = logging.getLogger(__name__)
+
+# 注：本地模型可选导入（无 torch 也可跑 Qwen-only 路径）
+try:
+    from .landmark_predictor import LandmarkPredictor  # 可选
+except Exception as e:
+    logger.error(f"❌ 导入 LandmarkPredictor 失败，详细错误: {type(e).__name__}: {e}", exc_info=True)
+    LandmarkPredictor = None
+
+# 注：默认使用 Qwen 与本地模型；Baidu 模块非必需（保留 UNUSED 版本供将来启用）
+try:
+    from .baidu_facade_service import BaiduFacadeService  # 可选
+except Exception as e:
+    logger.warning(f"BaiduFacadeService 导入失败: {e}")
+    BaiduFacadeService = None
+
+from .qwen_vl_service import QwenVLService
+from .constants import ALLOWED_LANDMARKS_CN
 
 class LocalLandmarkService:
     _instance = None

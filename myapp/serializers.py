@@ -1,6 +1,7 @@
 # myapp/serializers.py
 import json
 from rest_framework import serializers
+from django.conf import settings
 from .models import Location, Article
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -29,6 +30,7 @@ class LocationGeoJSONSerializer(serializers.ModelSerializer):
                 "id": instance.id,
                 "name": instance.name,
                 "description": instance.description,
+                "category": getattr(instance, 'category', None),
                 "image": image_url,
                 "owner": instance.owner.username
             },
@@ -40,4 +42,10 @@ class LocationGeoJSONSerializer(serializers.ModelSerializer):
                 ]
             }
         }
+
+class LocationFlatSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+    class Meta:
+        model = Location
+        fields = ['id', 'name', 'description', 'category', 'latitude', 'longitude', 'owner']
 
